@@ -25,6 +25,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
+import android.os.Build
 import android.os.Bundle
 import android.util.Rational
 import android.view.View
@@ -107,7 +108,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Handle events from the action icons on the picture-in-picture mode.
-        registerReceiver(broadcastReceiver, IntentFilter(ACTION_STOPWATCH_CONTROL))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(
+                broadcastReceiver,
+                IntentFilter(ACTION_STOPWATCH_CONTROL),
+                RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            registerReceiver(
+                broadcastReceiver,
+                IntentFilter(ACTION_STOPWATCH_CONTROL)
+            )
+        }
     }
 
     // This is called when the activity gets into or out of the picture-in-picture mode.

@@ -17,6 +17,7 @@
 package com.example.android.pictureinpicture
 
 import android.content.pm.ActivityInfo
+import android.os.Build
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.UiController
@@ -54,24 +55,28 @@ class MovieActivityTest {
 
     @Test
     fun movie_playingOnPip() {
-        // The movie should be playing on start
-        onView(withId(R.id.movie))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // The movie should be playing on start
+            onView(withId(R.id.movie))
                 .check(matches(allOf(isDisplayed(), isPlaying())))
                 .perform(showControls())
-        // Click on the button to enter Picture-in-Picture mode
-        onView(withId(R.id.minimize)).perform(click())
-        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-        // The Activity is paused. We cannot use Espresso to test paused activities.
-        rule.scenario.onActivity { activity ->
-            // We are now in Picture-in-Picture mode
-            assertThat(activity.isInPictureInPictureMode).isTrue()
-            val view = activity.findViewById<MovieView>(R.id.movie)
-            assertNotNull(view)
-            // The video should still be playing
-            assertThat(view.isPlaying).isTrue()
+            // Click on the button to enter Picture-in-Picture mode
+            onView(withId(R.id.minimize)).perform(click())
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            // The Activity is paused. We cannot use Espresso to test paused activities.
+            rule.scenario.onActivity { activity ->
+                // We are now in Picture-in-Picture mode
+                assertThat(activity.isInPictureInPictureMode).isTrue()
+                val view = activity.findViewById<MovieView>(R.id.movie)
+                assertNotNull(view)
+                // The video should still be playing
+                assertThat(view.isPlaying).isTrue()
 
-            // The media session state should be playing.
-            assertMediaStateIs(PlaybackStateCompat.STATE_PLAYING)
+                // The media session state should be playing.
+                assertMediaStateIs(PlaybackStateCompat.STATE_PLAYING)
+            }
+        } else {
+            onView(withId(R.id.pip)).check(matches(not(isDisplayed())))
         }
     }
 

@@ -9,5 +9,7 @@
 - Update strings to inform when Picture in Picture is not available
 
 ## Task 2
+- Fix instrumented tests to support Android Lollipop sdk 21
+- TODO include new tests
 
 ## Task 3

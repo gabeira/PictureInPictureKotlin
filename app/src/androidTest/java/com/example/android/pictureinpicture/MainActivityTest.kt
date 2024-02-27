@@ -16,18 +16,17 @@
 
 package com.example.android.pictureinpicture
 
+import android.os.Build
 import androidx.test.core.app.launchActivity
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
-import androidx.test.espresso.matcher.ViewMatchers.isEnabled
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
-import org.hamcrest.Matchers.allOf
 import org.hamcrest.Matchers.not
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,12 +47,16 @@ class MainActivityTest {
     @Test
     fun pip() {
         launchActivity<MainActivity>().use { scenario ->
-            scenario.onActivity { activity ->
-                assertThat(activity.isInPictureInPictureMode).isFalse()
-            }
-            onView(withId(R.id.pip)).perform(click())
-            scenario.onActivity { activity ->
-                assertThat(activity.isInPictureInPictureMode).isTrue()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                scenario.onActivity { activity ->
+                    assertThat(activity.isInPictureInPictureMode).isFalse()
+                }
+                onView(withId(R.id.pip)).perform(click())
+                scenario.onActivity { activity ->
+                    assertThat(activity.isInPictureInPictureMode).isTrue()
+                }
+            } else {
+                onView(withId(R.id.pip)).check(matches(not(isDisplayed())))
             }
         }
     }

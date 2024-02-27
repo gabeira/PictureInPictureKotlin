@@ -20,6 +20,7 @@ import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
@@ -28,6 +29,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.text.util.Linkify
 import android.util.Rational
 import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -99,7 +101,12 @@ class MovieActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         Linkify.addLinks(binding.explanation, Linkify.ALL)
-        binding.pip.setOnClickListener { minimize() }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            binding.pip.setOnClickListener { minimize() }
+        } else {
+            binding.explanation.text = getString(R.string.explanation_movie_no_pip)
+            binding.pip.visibility = View.GONE
+        }
         binding.switchExample.setOnClickListener {
             startActivity(Intent(this@MovieActivity, MainActivity::class.java))
             finish()
@@ -107,7 +114,9 @@ class MovieActivity : AppCompatActivity() {
 
         // Configure parameters for the picture-in-picture mode. We do this at the first layout of
         // the MovieView because we use its layout position and size.
-        binding.movie.doOnLayout { updatePictureInPictureParams() }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            binding.movie.doOnLayout { updatePictureInPictureParams() }
+        }
 
         // Set up the video; it automatically starts.
         binding.movie.setMovieListener(movieListener)
@@ -153,8 +162,12 @@ class MovieActivity : AppCompatActivity() {
 
     override fun onRestart() {
         super.onRestart()
-        if (!isInPictureInPictureMode) {
-            // Show the video controls so the video can be easily resumed.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            if (!isInPictureInPictureMode) {
+                // Show the video controls so the video can be easily resumed.
+                binding.movie.showControls()
+            }
+        } else {
             binding.movie.showControls()
         }
     }
@@ -171,6 +184,7 @@ class MovieActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean, newConfig: Configuration
     ) {
@@ -186,21 +200,24 @@ class MovieActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun updatePictureInPictureParams(): PictureInPictureParams {
         // Calculate the aspect ratio of the PiP screen.
         val aspectRatio = Rational(binding.movie.width, binding.movie.height)
         // The movie view turns into the picture-in-picture mode.
         val visibleRect = Rect()
         binding.movie.getGlobalVisibleRect(visibleRect)
-        val params = PictureInPictureParams.Builder()
-            .setAspectRatio(aspectRatio)
+        val paramsBuilder = PictureInPictureParams.Builder()
+        paramsBuilder.setAspectRatio(aspectRatio)
             // Specify the portion of the screen that turns into the picture-in-picture mode.
             // This makes the transition animation smoother.
-            .setSourceRectHint(visibleRect)
+        paramsBuilder.setSourceRectHint(visibleRect)
             // The screen automatically turns into the picture-in-picture mode when it is hidden
             // by the "Home" button.
-            .setAutoEnterEnabled(true)
-            .build()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            paramsBuilder.setAutoEnterEnabled(true)
+        }
+        val params = paramsBuilder.build()
         setPictureInPictureParams(params)
         return params
     }
@@ -209,7 +226,9 @@ class MovieActivity : AppCompatActivity() {
      * Enters Picture-in-Picture mode.
      */
     private fun minimize() {
-        enterPictureInPictureMode(updatePictureInPictureParams())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            enterPictureInPictureMode(updatePictureInPictureParams())
+        }
     }
 
     /**

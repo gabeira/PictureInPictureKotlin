@@ -19,6 +19,7 @@ package com.example.android.pictureinpicture.widget
 import android.content.Context
 import android.graphics.Color
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
@@ -325,7 +326,7 @@ class MovieView @JvmOverloads constructor(
         if (mediaPlayer == null) {
             return
         }
-        mediaPlayer!!.start()
+        mediaPlayer?.start()
         adjustToggleState()
         keepScreenOn = true
         movieListener?.onMovieStarted()
@@ -336,7 +337,7 @@ class MovieView @JvmOverloads constructor(
             adjustToggleState()
             return
         }
-        mediaPlayer!!.pause()
+        mediaPlayer?.pause()
         adjustToggleState()
         keepScreenOn = false
         movieListener?.onMovieStopped()
@@ -361,7 +362,14 @@ class MovieView @JvmOverloads constructor(
             player.reset()
             try {
                 resources.openRawResourceFd(videoResourceId).use { fd ->
-                    player.setDataSource(fd)
+                    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                        val afd = context.resources.openRawResourceFd(videoResourceId) ?: return
+                        player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                        afd.close()
+                        player.prepare()
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        player.setDataSource(fd)
+                    }
                     player.setOnPreparedListener { mediaPlayer ->
                         // Adjust the aspect ratio of this view
                         requestLayout()
@@ -378,7 +386,9 @@ class MovieView @JvmOverloads constructor(
                         keepScreenOn = false
                         movieListener?.onMovieStopped()
                     }
-                    player.prepare()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        player.prepare()
+                    }
                 }
             } catch (e: IOException) {
                 Log.e(TAG, "Failed to open video", e)

@@ -16,6 +16,7 @@
 
 package com.example.android.pictureinpicture
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
@@ -32,6 +33,7 @@ import android.view.View
 import androidx.activity.trackPipAnimationHintView
 import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -83,8 +85,13 @@ class MainActivity : AppCompatActivity() {
         // Event handlers
         binding.clear.setOnClickListener { viewModel.clear() }
         binding.startOrPause.setOnClickListener { viewModel.startOrPause() }
-        binding.pip.setOnClickListener {
-            enterPictureInPictureMode(updatePictureInPictureParams(viewModel.started.value == true))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            binding.pip.setOnClickListener {
+                enterPictureInPictureMode(updatePictureInPictureParams(viewModel.started.value == true))
+            }
+        } else {
+            binding.explanation.text = getString(R.string.explanation_main_no_pip)
+            binding.pip.visibility = View.GONE
         }
         binding.switchExample.setOnClickListener {
             startActivity(Intent(this@MainActivity, MovieActivity::class.java))
@@ -96,33 +103,37 @@ class MainActivity : AppCompatActivity() {
             binding.startOrPause.setImageResource(
                 if (started) R.drawable.ic_pause_24dp else R.drawable.ic_play_arrow_24dp
             )
-            updatePictureInPictureParams(started)
-        }
-
-        // Use trackPipAnimationHint view to make a smooth enter/exit pip transition.
-        // See https://android.devsite.corp.google.com/develop/ui/views/picture-in-picture#smoother-transition
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                trackPipAnimationHintView(binding.stopwatchBackground)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                updatePictureInPictureParams(started)
             }
         }
 
-        // Handle events from the action icons on the picture-in-picture mode.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(
-                broadcastReceiver,
-                IntentFilter(ACTION_STOPWATCH_CONTROL),
-                RECEIVER_NOT_EXPORTED
-            )
-        } else {
-            registerReceiver(
-                broadcastReceiver,
-                IntentFilter(ACTION_STOPWATCH_CONTROL)
-            )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Use trackPipAnimationHint view to make a smooth enter/exit pip transition.
+            // See https://android.devsite.corp.google.com/develop/ui/views/picture-in-picture#smoother-transition
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    trackPipAnimationHintView(binding.stopwatchBackground)
+                }
+            }
+            // Handle events from the action icons on the picture-in-picture mode.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(
+                    broadcastReceiver,
+                    IntentFilter(ACTION_STOPWATCH_CONTROL),
+                    RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                registerReceiver(
+                    broadcastReceiver,
+                    IntentFilter(ACTION_STOPWATCH_CONTROL)
+                )
+            }
         }
     }
 
     // This is called when the activity gets into or out of the picture-in-picture mode.
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean,
         newConfig: Configuration
@@ -143,11 +154,12 @@ class MainActivity : AppCompatActivity() {
      * Updates the parameters of the picture-in-picture mode for this activity based on the current
      * [started] state of the stopwatch.
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun updatePictureInPictureParams(started: Boolean): PictureInPictureParams {
-        val params = PictureInPictureParams.Builder()
+        val paramsBuilder = PictureInPictureParams.Builder()
             // Set action items for the picture-in-picture mode. These are the only custom controls
             // available during the picture-in-picture mode.
-            .setActions(
+        paramsBuilder.setActions(
                 listOf(
                     // "Clear" action.
                     createRemoteAction(
@@ -176,14 +188,16 @@ class MainActivity : AppCompatActivity() {
                 )
             )
             // Set the aspect ratio of the picture-in-picture mode.
-            .setAspectRatio(Rational(16, 9))
+        paramsBuilder.setAspectRatio(Rational(16, 9))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // Turn the screen into the picture-in-picture mode if it's hidden by the "Home" button.
-            .setAutoEnterEnabled(true)
+            paramsBuilder.setAutoEnterEnabled(true)
             // Disables the seamless resize. The seamless resize works great for videos where the
             // content can be arbitrarily scaled, but you can disable this for non-video content so
             // that the picture-in-picture mode is resized with a cross fade animation.
-            .setSeamlessResizeEnabled(false)
-            .build()
+            paramsBuilder.setSeamlessResizeEnabled(false)
+        }
+        val params =  paramsBuilder.build()
         setPictureInPictureParams(params)
         return params
     }
@@ -192,6 +206,7 @@ class MainActivity : AppCompatActivity() {
      * Creates a [RemoteAction]. It is used as an action icon on the overlay of the
      * picture-in-picture mode.
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun createRemoteAction(
         @DrawableRes iconResId: Int,
         @StringRes titleResId: Int,

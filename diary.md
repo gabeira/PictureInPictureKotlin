@@ -13,3 +13,7 @@
 - TODO include new tests
 
 ## Task 3
+- Implemented a new Repository class to separate time information from ViewModel
+- Created a continue method to keep counting when back from the other activity
+- TODO add dependency injection to better manage Repository
+- TODO move variable job out of viewmodel to enable clock to keep counting

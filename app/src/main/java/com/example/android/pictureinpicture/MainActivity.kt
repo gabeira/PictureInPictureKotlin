@@ -16,7 +16,6 @@
 
 package com.example.android.pictureinpicture
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
@@ -98,7 +97,7 @@ class MainActivity : AppCompatActivity() {
             finish()
         }
         // Observe data from the viewModel.
-        viewModel.time.observe(this) { time -> binding.time.text = time }
+        viewModel.time.observe(this) { time -> binding.time.text = time.toString() }
         viewModel.started.observe(this) { started ->
             binding.startOrPause.setImageResource(
                 if (started) R.drawable.ic_pause_24dp else R.drawable.ic_play_arrow_24dp
@@ -130,6 +129,11 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.continueClock()
     }
 
     // This is called when the activity gets into or out of the picture-in-picture mode.
